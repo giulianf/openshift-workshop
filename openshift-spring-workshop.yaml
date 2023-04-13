@@ -8,20 +8,6 @@ metadata:
 spec:
   lookupPolicy:
     local: false
----
-apiVersion: image.openshift.io/v1
-kind: ImageStream
-metadata:
-  name: ubi8-openjdk-17
-  namespace: giulianf1984-dev
-spec:
-  lookupPolicy:
-    local: false
-  tags:
-    - name: latest
-      from:
-        kind: DockerImage
-        name: registry.access.redhat.com/ubi8/openjdk-17:latest
 
 ---
 kind: BuildConfig
@@ -215,7 +201,7 @@ data:
         show-sql: false # print all the DB queries to the console
     
         hibernate:
-          ddl-auto: create-drop
+          ddl-auto: create
           naming:
             implicit-strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyLegacyHbmImpl
         properties:
