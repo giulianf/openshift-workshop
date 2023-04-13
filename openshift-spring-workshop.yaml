@@ -1,0 +1,230 @@
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: openshift-spring-workshop
+  labels:
+    app: openshift-spring-workshop-application
+    env: int
+spec:
+  lookupPolicy:
+    local: false
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: ubi8-openjdk-17
+  namespace: giulianf1984-dev
+spec:
+  lookupPolicy:
+    local: false
+  tags:
+    - name: latest
+      from:
+        kind: DockerImage
+        name: registry.access.redhat.com/ubi8/openjdk-17:latest
+
+---
+kind: BuildConfig
+apiVersion: build.openshift.io/v1
+metadata:
+  name: openshift-spring-workshop
+  labels:
+    app: openshift-spring-workshop-application
+    env: int
+spec:
+  runPolicy: Serial
+  source:
+    git:
+      ref: main
+      uri: https://github.com/giulianf/openshift-spring-workshop.git
+    type: Git
+#    if you need password , certificate...
+#    sourceSecret:
+#      name: git-secret
+  strategy:
+    dockerStrategy:
+#      file in the src
+      dockerfilePath: Dockerfile
+    type: Docker
+  output:
+    to:
+      kind: ImageStreamTag
+      name: openshift-spring-workshop:latest
+  triggers:
+    - type: ConfigChange
+
+---
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  name: openshift-spring-workshop
+  labels:
+    app: openshift-spring-workshop-application
+    type: spring-boot
+    env: int
+spec:
+  replicas: 1
+  selector:
+    app: openshift-spring-workshop
+    deploymentconfig: openshift-spring-workshop
+  strategy:
+    type: Rolling
+  template:
+    metadata:
+      labels:
+        app: openshift-spring-workshop
+        deploymentconfig: openshift-spring-workshop
+    spec:
+      containers:
+        - name: openshift-spring-workshop
+          resources:
+            limits:
+              memory: 1G
+              cpu: 800m
+            requests:
+              memory: 1G
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 9031
+              scheme: HTTP
+            initialDelaySeconds: 45
+            timeoutSeconds: 1
+            periodSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 9031
+              scheme: HTTP
+            initialDelaySeconds: 45
+            timeoutSeconds: 1
+            periodSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: int
+            - name: TZ
+              value: Europe/Brussels
+            - name: JAVA_OPTIONS
+              value: '-Xms900m -Xmx1000m '
+#            - name: GC_MAX_METASPACE_SIZE
+#                value: 512
+#            - name: GC_METASPACE_SIZE
+#              value: 512
+          envFrom:
+            - secretRef:
+                name: openshift-workshop-secret
+                optional: false
+          image: openshift-spring-workshop
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+            - containerPort: 8443
+              protocol: TCP
+            - containerPort: 9031
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /app/application-int.yml
+              name: openshift-spring-workshop-application-file
+              readOnly: true
+              subPath: application-int.yml
+            - mountPath: /deployments/logs/
+              name: syslog
+      volumes:
+        - configMap:
+            optional: false
+            name: openshift-spring-workshop-application
+          name: openshift-spring-workshop-application-file
+        - name: syslog
+          emptyDir: {}
+  triggers:
+    - type: ConfigChange
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+          - openshift-spring-workshop
+        from:
+          kind: ImageStreamTag
+          name: openshift-spring-workshop:latest
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    env: int
+    app: openshift-spring-workshop
+  name: openshift-spring-workshop
+spec:
+  ports:
+    - name: 8080-tcp
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    - name: 8443-tcp
+      port: 8443
+      protocol: TCP
+      targetPort: 8443
+    - name: 9031-tcp
+      port: 9031
+      protocol: TCP
+      targetPort: 9031
+  selector:
+    deploymentconfig: openshift-spring-workshop
+
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: openshift-spring-workshop
+  labels:
+    env: int
+spec:
+  port:
+    targetPort: 9031-tcp
+  to:
+    kind: Service
+    name: openshift-spring-workshop
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openshift-spring-workshop-application
+  labels:
+    env: int
+    app: openshift-spring-workshop-application
+data:
+  application-int.yml: |-
+    server:
+      port: 9031
+    spring:
+      datasource:
+        driver-class-name: org.h2.Driver
+        url: jdbc:h2:mem:db;DB_CLOSE_DELAY=-1;MODE=MYSQL
+    
+      jpa:
+        generate-ddl: false # do not initialize schema on startup
+        show-sql: false # print all the DB queries to the console
+    
+        hibernate:
+          ddl-auto: create-drop
+          naming:
+            implicit-strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyLegacyHbmImpl
+        properties:
+          hibernate:
+            max_fetch_depth: 3
+            dialect: org.hibernate.dialect.H2Dialect
+      main:
+        allow-bean-definition-overriding: false
+    
+    swagger:
+      title: "INT - Microservice Openshift spring workshop REST API"
+
