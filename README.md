@@ -1,9 +1,10 @@
 # Installation on Openshift Container Plateform
-### Useful Links
-#### console
-https://console-openshift-console.apps.sandbox-m3.1530.p1.openshiftapps.com/k8s/cluster/projects/giulianf1984-dev  
+## Useful Links
+### console
+#### how to create a sandbox
+Read more [here](./Sandbox.md) 
 
-#### access to swagger  
+### access to swagger  
 https://openshift-spring-workshop-giulianf1984-dev.apps.sandbox-m3.1530.p1.openshiftapps.com/swagger
 
 # Getting started
