@@ -1,5 +1,10 @@
 # Installation on Openshift Container Plateform
+### Useful Links
+#### console
 https://console-openshift-console.apps.sandbox-m3.1530.p1.openshiftapps.com/k8s/cluster/projects/giulianf1984-dev  
+
+#### access to swagger  
+https://openshift-spring-workshop-giulianf1984-dev.apps.sandbox-m3.1530.p1.openshiftapps.com/swagger
 
 # Getting started
 ## structure repository
@@ -20,5 +25,3 @@ Using Imagestram has several benefits:
   ![alt](img/flow-angular.png)
 
 
-### Preprod
-Use Docker container from Artifactory in order to deploy the application
