@@ -21,6 +21,7 @@ Using Imagestram has several benefits:
 * You can trigger Builds and Deployments when a new image is pushed to the registry.
 
 #### Spring boot flow
+Ex: https://github.com/giulianf/openshift-spring-workshop  
   ![alt](img/flow-spring-boot.png)
 #### Angular flow
   ![alt](img/flow-angular.png)
